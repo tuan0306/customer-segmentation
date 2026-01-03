@@ -11,7 +11,7 @@ Mục tiêu là sử dụng thuật toán học máy không giám sát (**K-Mean
 Dự án được tổ chức theo mô hình OOP (Lập trình hướng đối tượng) để code gọn gàng và dễ bảo trì.
 
 ```text
-Customer_Segmentation/
+Customer Segmentation with KMeans/
 ├── data/
 │   ├── raw/                    # Chứa dữ liệu gốc (online_retail.csv)
 │   └── processed/              # Chứa dữ liệu đã làm sạch và file features
