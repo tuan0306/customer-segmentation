@@ -5,6 +5,9 @@ import seaborn as sns
 from scipy import stats
 from sklearn.preprocessing import StandardScaler
 import os
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from sklearn.decomposition import PCA
 
 class DataCleaner:
     def __init__(self,file_path):
@@ -253,3 +256,106 @@ class FeatureEngineer:
         self.customer_features_transformed.to_csv(f"{file_path}/customer_features_transformed.csv")
         
         self.customer_features_scaled.to_csv(f"{file_path}/customer_features_scaled.csv")
+        
+        
+class ClusterAnalyzer:
+    def __init__(self,df_scaled_path,df_original_path):
+        self.df_scaled_path=df_scaled_path
+        self.df_original_path=df_original_path
+        self.df_scaled=None
+        self.df_original=None
+        self.models={}
+        self.labels={}
+        self.pca_data=None
+        self.pca=None
+        self.cluster_results={}
+        
+    def load_data(self):
+        self.df_scaled=pd.read_csv(self.df_scaled_path,index_col=0)
+        self.df_original=pd.read_csv(self.df_original_path,index_col=0)
+        
+    def determine_optimal_k(self,k_range=range(2,11)):
+        inertia=[]
+        silhouettes=[]
+        
+        for k in k_range:
+            model=KMeans(n_clusters=k,random_state=42,n_init=10)
+            model.fit(self.df_scaled)
+            inertia.append(model.inertia_)
+            silhouettes.append(silhouette_score(self.df_scaled,model.labels_))
+        
+        fig,axes=plt.subplots(1,2,figsize=(15,5))
+        
+        axes[0].plot(k_range,inertia,marker='o')
+        axes[0].set_title('Phuong phap Elbow')
+        axes[0].set_xlabel('So luong clusters(k)')
+        axes[0].set_xticks(k_range)
+        axes[0].set_ylabel('Inertia')
+        axes[0].grid(True)
+        
+        axes[1].plot(k_range,silhouettes,marker='o')
+        axes[1].set_title('Phuong phap Silhouette score')
+        axes[1].set_xlabel('So luong clusters(k)')
+        axes[1].set_xticks(k_range)
+        axes[1].set_ylabel('Silhouette score')
+        axes[1].grid(True)
+        
+        plt.tight_layout()
+        plt.show()
+        
+    def apply_pca(self,n_component=3):
+        self.pca=PCA(n_components=n_component)
+        pca_dat=self.pca.fit_transform(self.df_scaled)
+        cols=[f"PC{i+1}" for i in range(pca_dat.shape[1])]
+        self.pca_data=pd.DataFrame(pca_dat,index=self.df_scaled.index,columns=cols)
+        return self.pca_data
+    
+    def plot_pca_variance(self):
+        ratios=self.pca.explained_variance_ratio_
+        indies=np.arange(len(ratios))+1
+        plt.figure(figsize=(10,6))
+        ratios_cumsum=np.cumsum(ratios)
+        
+        plt.bar(indies,ratios,color='g',label='Phuong sai tung thanh phan')
+        
+        plt.plot(indies,ratios_cumsum,marker='o',color='r',linestyle='-',linewidth=2,label='Tong hop phuon sai tich luy')
+        
+        plt.title('Phan tich phuong sai cua PCA', fontsize=15)
+        plt.xlabel('Thanh phan chinh')
+        plt.ylabel('Ty le phuong sai')
+        plt.xticks(indies, [f"PC{i}" for i in indies])
+        plt.legend()
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        for i, v in enumerate(ratios):
+            plt.text(i+1, v + 0.01, f'{v*100:.1f}%', ha='center', color='green', fontweight='bold')
+        plt.show()
+        
+    def apply_kmeans(self,k_list=[3,4]):
+        for k in k_list:
+            model=KMeans(n_clusters=k,random_state=42,n_init=10)
+            label=model.fit_predict(self.df_scaled)
+            
+            df_result=self.df_original.copy()
+            
+            df_result['Cluster']=label
+            self.models[k]=model
+            self.labels[k]=label
+            
+            self.cluster_results[k]=df_result
+        return self.cluster_results
+    
+    def plot_clusters_pca(self,k_list=[3,4]):
+        fig,axes=plt.subplots(len(k_list),1,figsize=(10,10))
+        
+        for i,k in enumerate(k_list):
+            x=self.pca_data['PC1']
+            y=self.pca_data['PC2']
+            label=self.labels[k]
+            scatter=axes[i].scatter(x,y,c=label,cmap='viridis',s=50,alpha=0.6)
+            axes[i].set_title(f'Phan cum KMeans (k={k})')
+            axes[i].set_xlabel('PC1')
+            axes[i].set_ylabel('PC2')
+            plt.colorbar(scatter,ax=axes[i],label='Cluster')
+        
+        plt.tight_layout()
+        plt.show()
