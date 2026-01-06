@@ -24,3 +24,6 @@ Customer Segmentation with KMeans/
 │   └── clustering_library.py   # Thư viện chính chứa các class: DataCleaner, FeatureEngineer, ClusterAnalyzer
 ├── requirements.txt            # Danh sách thư viện cần thiết
 └── README.md                   # Tài liệu hướng dẫn
+```
+
+## Dự án dựa trên tài liệu hướng dẫn của AI Việt Nam

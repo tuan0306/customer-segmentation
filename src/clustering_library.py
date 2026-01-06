@@ -8,6 +8,7 @@ import os
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.decomposition import PCA
+from mpl_toolkits.mplot3d import Axes3D
 
 class DataCleaner:
     def __init__(self,file_path):
@@ -359,3 +360,48 @@ class ClusterAnalyzer:
         
         plt.tight_layout()
         plt.show()
+        
+    def plot_clusters_pca_3d(self,k_list=[3,4]):
+        fig=plt.figure(figsize=(10,10))
+        
+        for i,k in enumerate(k_list):
+            x=self.pca_data['PC1']
+            y=self.pca_data['PC2']
+            z=self.pca_data['PC3']
+            label=self.labels[k]
+            ax=fig.add_subplot(len(k_list),1,i+1,projection='3d')
+            scatter=ax.scatter(x,y,z,c=label,cmap='viridis',s=50,alpha=0.6)
+            ax.set_title(f'Phan cum KMeans (k={k})')
+            ax.set_xlabel('PC1')
+            ax.set_ylabel('PC2')
+            ax.set_zlabel('PC3')
+            plt.colorbar(scatter,ax=ax,label='Cluster')
+        
+        plt.tight_layout()
+        plt.show()
+            
+        
+    def analyze_pca_meaning(self):
+        loadings=pd.DataFrame(
+            self.pca.components_.T,
+            columns=['PC1','PC2','PC3'],
+            index=self.df_scaled.columns
+        )
+        
+        plt.figure(figsize=(10,10))
+        sns.heatmap(loadings,annot=True,cmap='RdBu_r',center=0,fmt='.2f',linewidths=2)
+        plt.title('Muc do dong gop cua cac feature goc vao PC (PCA Loadings)', fontsize=14)
+        plt.ylabel('Cac dac trung goc (Original Features)')
+        plt.xlabel('Cac thanh phan chinh (Principal Components)')
+        plt.tight_layout()
+        plt.show()
+        
+    def save_clusters(self,file_path='../data/processed'):
+        os.makedirs(file_path,exist_ok=True)
+        
+        for k,df_result in self.cluster_results.items():
+            output_cluster=df_result[['Cluster']].copy()
+            output_cluster=output_cluster.reset_index()
+            output_cluster=output_cluster.sort_values(by=['Cluster','CustomerID'])
+            output_cluster.to_csv(f'{file_path}/customer_clusters_{k}.csv',index=False)
+        
